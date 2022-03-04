@@ -488,6 +488,7 @@ FactorsSCGLR <- function(formula,
   coef <- sol
   names.coef <- c("intercept", A_vars, names_comp)
   row.names(coef) <- names.coef
+  colnames(coef) <- colnames(Y)
   if(theme_R == 0){
     Theme <- NULL
     U <- NULL
@@ -499,14 +500,17 @@ FactorsSCGLR <- function(formula,
       B.rotation <- diag(rotation) %*% B.new
       G.rotation <- res.EM$G %*% diag(rotation)
       rownames(B.rotation) <- paste("Factor", 1:J, sep="")
+      colnames(B.rotation) <- colnames(Y)
       colnames(G.rotation) <- paste("Factor", 1:J, sep="")
     } else {
-      if(B.new[1,1]<0){
-        B.rotation <- -B.new
-        G.rotation <- -res.EM$G
-        rownames(B.rotation) <- paste("Factor", 1:J, sep="")
-        colnames(G.rotation) <- paste("Factor", 1:J, sep="")
-      }
+      rotation <- 1
+      if(B.new[1,1]<0) rotation <- -1
+      B.rotation <- rotation*B.new
+      G.rotation <- rotation*res.EM$G
+      rownames(B.rotation) <- paste("Factor", 1:J, sep="")
+      colnames(B.rotation) <- colnames(Y)
+      colnames(G.rotation) <- paste("Factor", 1:J, sep="")
+
     }
 
   } else {
