@@ -19,7 +19,7 @@ n <- names(data)
 ny <- n[grep("^gen",n)]
 nx1 <- n[grep("^evi",n)]
 nx2 <- n[grep("^pluvio",n)]
-na <- c("geology", "altitude", "forest", "lon", "lat")
+na <- c("geology", "forest")
 
 # build multivariate formula
 form <- multivariateFormula(Y = ny, X = list(nx1, nx2), A = na)
@@ -38,6 +38,7 @@ res <- FactorsSCGLR(formula=form, data=data, H=H, J=J,
 res$U
 res$comp
 res$B
+res$coefs
 
 # plot the results
 plot_comp(x=res, thresold=0.5, theme=1, plan=c(1,2))
