@@ -182,4 +182,9 @@ res$sigma2
 IC <- InformationCriterion(x=res)
 IC$aic
 IC$bic
+
+#*********************#
+# Detect the clusters #
+#*********************#
+cluster <- ClusterDetection(res$B)
 ```
