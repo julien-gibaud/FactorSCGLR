@@ -186,5 +186,6 @@ IC$bic
 #*********************#
 # Detect the clusters #
 #*********************#
-cluster <- ClusterDetection(res$B)
+cluster <- ClusterDetection(mat=res$B)
+cluster
 ```
