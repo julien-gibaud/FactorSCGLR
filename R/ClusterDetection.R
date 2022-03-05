@@ -60,7 +60,7 @@ ClusterDetection <- function(mat){
   # perform K-means with CAH as initialisation
   k.opt <- which.max(fviz_nbclust(res.CMD$points, FUNcluster = hkmeans,
                                   method = "silhouette",
-                                  k.max=10)$data$y)
+                                  k.max=ncol(mat)-1)$data$y)
   res.km <- hkmeans(x=res.CMD$points, k = k.opt)
 
   return(list(cluster = res.km$cluster))
