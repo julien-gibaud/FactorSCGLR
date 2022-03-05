@@ -184,8 +184,137 @@ IC$aic
 IC$bic
 
 #*********************#
-# Detect the clusters #
+# detect the clusters #
 #*********************#
 cluster <- ClusterDetection(mat=res$B)
 cluster
+```
+
+### Packages comparison with binary responses
+```r
+# devtools::install_github("JenniNiku/gllvm")
+library(FactorsSCGLR)
+library(gllvm)
+library(mvtnorm)
+
+#**********#
+# settings #
+#**********#
+N <- 100     # observations
+K <- 10      # responses
+J <- 2       # factors
+variance_B  <- 0.1 # variance within the clusters
+
+#*****************************#
+# create the latent variables #
+#*****************************#
+psi.sim <- rnorm(n = N)
+G.sim <- rmvnorm(n=N, mean = rep(0, J), sigma = diag(J))
+
+#*********************************#
+# create the additional covariate #
+#*********************************#
+A <- rbinom(n=N, size=2, prob=0.5)+1
+
+#**********************************#
+# create the regression parameters #
+#**********************************#
+gamma.sim <- runif(n = K, min = -4, max = 4)
+delta.sim <- runif(n = K, min = -1, max = 1)
+
+#*****************************#
+# create the factors loadings #
+#*****************************#
+mean1 <- c(0,2)
+mean2 <- c(1.5,0)
+rot <- rep(-1, K)
+rot[(1:K)%%2==0] <- 1
+B.sim <- t(diag(rot)%*%rbind(rmvnorm(n=0.4*K, mean = mean1, sigma = variance_B*diag(J)),
+                             rmvnorm(n=0.6*K, mean = mean2, sigma = variance_B*diag(J))))
+
+#*********************************#
+# simulate the response variables #
+#*********************************#
+Y <- cbind()
+for(i in 1:K){ # bernoulli
+  eta <- psi.sim*gamma.sim[i]+A*delta.sim[i]+G.sim%*%B.sim[,i]
+  mu <- exp(eta)/(1+exp(eta))
+  Y <- cbind(Y, rbinom(n=N, size=1, prob=mu))
+}
+
+#************************************#
+# simulate the explanatory variables #
+#************************************#
+X <- cbind()
+for(i in 1:10)  X <- cbind(X, psi.sim + rnorm(n = N, sd = sqrt(0.1)))
+
+#**************#
+# run function #
+#**************#
+# build data
+data <- data.frame(cbind(Y,X,A))
+# build multivariate formula
+ny <- paste("Y", 1:K, sep = "")
+nx <- paste("X", 1:10, sep = "")
+na <- "A1"
+colnames(data) <- c(ny,nx,na)
+form <- multivariateFormula(ny,nx,na, additional = TRUE)
+# define family
+fam <- rep('bernoulli', K)
+# define method
+met <- methodSR(l=1,s=0.5, maxiter = 50)
+# define crit
+crit <- list(tol = 1e-6, maxit = 100)
+# run FactorsSCGLR
+H <- 1
+start.time.scglr <- Sys.time()
+res <- FactorsSCGLR(formula=form,
+                    data=data,
+                    J=J,
+                    H=H,
+                    method=met,
+                    family = fam,
+                    crit = crit)
+end.time.scglr <- Sys.time()
+time.taken.scglr <- as.numeric(difftime(end.time.scglr, 
+                                        start.time.scglr, 
+                                        units = "secs"))
+
+# Detect the clusters 
+cluster.scglr <- ClusterDetection(mat=res$B)
+
+#***********#
+# run gllvm #
+#***********#
+# build data
+explanatory <- cbind(X,A)
+colnames(explanatory) <- c(nx,na)
+# run gllvm-EVA
+start.time.gllvm.eva <- Sys.time()
+res.gllvm.eva <- gllvm(formula = Y~explanatory, family = binomial(), 
+                       num.lv = J,  method = "EVA")
+end.time.gllvm.eva <- Sys.time()
+time.taken.gllvm.eva <- as.numeric(difftime(end.time.gllvm.eva,
+                                            start.time.gllvm.eva,
+                                            units = "secs"))
+# run gllvm-VA
+start.time.gllvm.va <- Sys.time()
+res.gllvm.va <- gllvm(formula = Y~explanatory, family = binomial(), 
+                      num.lv = J,  method = "VA")
+end.time.gllvm.va <- Sys.time()
+time.taken.gllvm.va <- as.numeric(difftime(end.time.gllvm.va, 
+                                           start.time.gllvm.va, 
+                                           units = "secs"))
+# run gllvm-LA
+start.time.gllvm.la <- Sys.time()
+res.gllvm.la <- gllvm(formula = Y~explanatory, family = binomial(), 
+                      num.lv = J,  method = "LA")
+end.time.gllvm.la <- Sys.time()
+time.taken.gllvm.la <- as.numeric(difftime(end.time.gllvm.la,
+                                           start.time.gllvm.la,
+                                           units = "secs"))
+# Detect the clusters 
+cluster.gllvm.eva <- ClusterDetection(mat=t(res.gllvm.eva$params$theta))
+cluster.gllvm.va <- ClusterDetection(mat=t(res.gllvm.va$params$theta))
+cluster.gllvm.la <- ClusterDetection(mat=t(res.gllvm.la$params$theta))
 ```
