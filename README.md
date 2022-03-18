@@ -166,7 +166,7 @@ res <- FactorsSCGLR(formula=form,
 #**************#
 # the correlation plots
 plot1 <- plot_comp(x=res, thresold = 0.5, theme=1, plan = c(1,2))
-plot2 <- plot_comp(x=res, thresold = 0.5, them=2, plan = c(1,2))
+plot2 <- plot_comp(x=res, thresold = 0.5, theme=2, plan = c(1,2))
 # the supervised components
 res$comp
 # the factors loading
