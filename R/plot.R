@@ -3,8 +3,8 @@ if(getRversion()>="2.15.1") {
   utils::globalVariables(c("x","y","label","angle","hjust"))
 }
 
-#' @title FactorsSCGLR generic plot
-#' @param x an object from FactorsSCGLR
+#' @title FactorSCGLR generic plot
+#' @param x an object from FactorSCGLR
 #' @param thresold correlations with the two components of the plane lower than this threshold will be ignored
 #' @param theme a integer indicating the theme
 #' @param plan a size-2 vector indicating which components are plotted
@@ -33,15 +33,15 @@ if(getRversion()>="2.15.1") {
 #'H <- c(2,2)
 #'J <- 2
 #'met <- methodSR(l=4, s=0.5)
-#'res <- FactorsSCGLR(formula=form, data=data, H=H, J=J,
+#'res <- FactorSCGLR(formula=form, data=data, H=H, J=J,
 #'                    family=fam, method=met, offset = data$surface)
 #'
 #'# show the correlation plot
 #'plot_comp(x=res, thresold=0.5, theme=1, plan=c(1,2), lin.pred=TRUE)
 
 plot_comp <- function(x, thresold, plan=c(1,2), theme=1, lin.pred=FALSE){
-  if (class(x) != "FactorsSCGLR")
-    stop("This plot function need an FactorsSCGLR result")
+  if (class(x) != "FactorSCGLR")
+    stop("This plot function need an FactorSCGLR result")
 
   res <- x
   labels.offset <- 0.01

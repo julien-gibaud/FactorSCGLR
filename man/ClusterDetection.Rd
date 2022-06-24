@@ -33,7 +33,7 @@ fam <- rep("poisson", length(ny))
 H <- c(2,2)
 J <- 2
 met <- methodSR(l=4, s=0.5)
-res <- FactorsSCGLR(formula=form, data=data, H=H, J=J,
+res <- FactorSCGLR(formula=form, data=data, H=H, J=J,
                    family=fam, method=met, offset = data$surface)
 
 # Detect the clusters

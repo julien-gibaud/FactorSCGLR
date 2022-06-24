@@ -3,7 +3,7 @@
 S3method("$",MultivariateFormula)
 S3method(print,MultivariateFormula)
 export(ClusterDetection)
-export(FactorsSCGLR)
+export(FactorSCGLR)
 export(InformationCriterion)
 export(critConvergence)
 export(methodSR)

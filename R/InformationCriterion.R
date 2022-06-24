@@ -1,5 +1,5 @@
 #' @title Information criterion for scglr with factors
-#' @param x an object from FactorsSCGLR
+#' @param x an object from FactorSCGLR
 #' @return \item{aic}{akaike information criterion}
 #' @return \item{bic}{bayesian information criterion}
 #' @export
@@ -25,7 +25,7 @@
 #'H <- c(2,2)
 #'J <- 2
 #'met <- methodSR(l=4, s=0.5)
-#'res <- FactorsSCGLR(formula=form, data=data, H=H, J=J,
+#'res <- FactorSCGLR(formula=form, data=data, H=H, J=J,
 #'                    family=fam, method=met, offset = data$surface)
 #'
 #'# compute the information criterion
@@ -34,8 +34,8 @@
 #'IC$bic
 
 InformationCriterion <- function(x){
-  if (class(x) != "FactorsSCGLR")
-    stop("This plot function need an FactorsSCGLR result")
+  if (class(x) != "FactorSCGLR")
+    stop("This plot function need an FactorSCGLR result")
 
   res <- x
   # linear predictor

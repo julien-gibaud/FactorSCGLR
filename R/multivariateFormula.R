@@ -13,7 +13,7 @@
 #' group as additional covariates, one can use \code{||} (double pipes) as last group separator or set
 #' \code{additional} parameter as \code{TRUE}.
 #' @examples
-#' library(FactorsSCGLR)
+#' library(FactorSCGLR)
 #' # build multivariate formula
 #' ny <- c("y1","y2")
 #' nx1 <- c("x11","x12")

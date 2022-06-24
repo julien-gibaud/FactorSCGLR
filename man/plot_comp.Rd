@@ -2,12 +2,12 @@
 % Please edit documentation in R/plot.R
 \name{plot_comp}
 \alias{plot_comp}
-\title{FactorsSCGLR generic plot}
+\title{FactorSCGLR generic plot}
 \usage{
 plot_comp(x, thresold, plan = c(1, 2), theme = 1, lin.pred = FALSE)
 }
 \arguments{
-\item{x}{an object from FactorsSCGLR}
+\item{x}{an object from FactorSCGLR}
 
 \item{thresold}{correlations with the two components of the plane lower than this threshold will be ignored}
 
@@ -21,7 +21,7 @@ plot_comp(x, thresold, plan = c(1, 2), theme = 1, lin.pred = FALSE)
 an object of class ggplot2
 }
 \description{
-FactorsSCGLR generic plot
+FactorSCGLR generic plot
 }
 \examples{
 # load sample data
@@ -41,7 +41,7 @@ fam <- rep("poisson", length(ny))
 H <- c(2,2)
 J <- 2
 met <- methodSR(l=4, s=0.5)
-res <- FactorsSCGLR(formula=form, data=data, H=H, J=J,
+res <- FactorSCGLR(formula=form, data=data, H=H, J=J,
                    family=fam, method=met, offset = data$surface)
 
 # show the correlation plot

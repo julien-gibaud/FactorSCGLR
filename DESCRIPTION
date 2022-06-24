@@ -1,10 +1,10 @@
-Package: FactorsSCGLR
+Package: FactorSCGLR
 Title: Supervised Component-based Generalized Linear Regression with Factors
 Version: 1.0
 Authors@R: 
     person("Julien", "Gibaud", , "julien.gibaud@umontpellier.fr", role = c("aut", "cre"))
 Description: An extension of the Supervised Component-based Generalized Linear Regression to
-             model the responses’ conditional variance-covariance matrix by the means of factors.
+             model the responses conditional variance-covariance matrix by the means of factors.
 License: GPL-3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
