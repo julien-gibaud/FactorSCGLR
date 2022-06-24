@@ -10,6 +10,8 @@ remotes::install_github("julien-gibaud/FactorSCGLR")
 
 ## Example
 ``` r
+library(FactorSCGLR)
+
 # load sample data
 data <- genus
 data <- as.data.frame(apply(data, 2, as.numeric ))
@@ -53,7 +55,7 @@ IC$bic
 ## Simulations from the paper
 ### Simulation with a mix of distribution
 ``` r
-library(FactorsSCGLR)
+library(FactorSCGLR)
 library(mvtnorm)
 
 #**********#
@@ -193,7 +195,7 @@ cluster
 ### Packages comparison with binary responses
 ```r
 # devtools::install_github("JenniNiku/gllvm")
-library(FactorsSCGLR)
+library(FactorSCGLR)
 library(gllvm)
 library(mvtnorm)
 
