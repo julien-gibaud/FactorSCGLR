@@ -1,11 +1,11 @@
-# FactorsSCGLR
+# FactorSCGLR
 Supervised Component-based Generalized Linear Regression for factor models
 
 ## Installation
 
 ``` r
 # Install development version from GitHub
-remotes::install_github("julien-gibaud/FactorsSCGLR")
+remotes::install_github("julien-gibaud/FactorSCGLR")
 ```
 
 ## Example
