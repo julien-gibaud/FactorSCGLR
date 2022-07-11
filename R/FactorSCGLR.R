@@ -485,10 +485,26 @@ FactorSCGLR <-  function(formula,
   # out  #----
   #******#
 
+
+  if("gaussian" %in% family){
+    sigma2.new <- as.data.frame(rbind(sigma2.new))
+    colnames(sigma2.new) <- colnames(Y[, family == "gaussian"])
+    rownames(sigma2.new) <- ''
+  }
+
+  Theme_final <- cbind()
+  if(theme_R > 0){
+    for(r in 1:theme_R){
+      colnames(Theme[[r]]) <- paste(attr(theme_X[[r]], "label"), "_", colnames(Theme[[r]]), sep = "")
+      Theme_final <- cbind(Theme_final, Theme[[r]])
+    }
+  }
+
   coef <- sol
   names.coef <- c("intercept", A_vars, names_comp)
   row.names(coef) <- names.coef
   colnames(coef) <- colnames(Y)
+  colnames(eta.new) <- colnames(Y)
   if(theme_R == 0){
     Theme <- NULL
     U <- NULL
@@ -527,7 +543,7 @@ FactorSCGLR <-  function(formula,
               G=G.rotation,
               offset=offset,
               Z=Z,
-              Theme=Theme,
+              Theme=Theme_final,
               Y=Y,
               A=A,
               W=W,

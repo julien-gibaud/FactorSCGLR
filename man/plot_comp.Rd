@@ -4,7 +4,7 @@
 \alias{plot_comp}
 \title{FactorSCGLR generic plot}
 \usage{
-plot_comp(x, thresold, plan = c(1, 2), theme = 1, lin.pred = FALSE)
+plot_comp(x, thresold = 0, plan = c(1, 2), theme = 1, lin.pred = FALSE)
 }
 \arguments{
 \item{x}{an object from FactorSCGLR}

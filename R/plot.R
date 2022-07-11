@@ -39,14 +39,21 @@ if(getRversion()>="2.15.1") {
 #'# show the correlation plot
 #'plot_comp(x=res, thresold=0.5, theme=1, plan=c(1,2), lin.pred=TRUE)
 
-plot_comp <- function(x, thresold, plan=c(1,2), theme=1, lin.pred=FALSE){
+plot_comp <- function(x, thresold=0, plan=c(1,2), theme=1, lin.pred=FALSE){
   if (class(x) != "FactorSCGLR")
     stop("This plot function need an FactorSCGLR result")
 
   res <- x
   labels.offset <- 0.01
 
-  inertia <- cor(res$Theme[[theme]], res$Theme[[theme]]%*%res$U[[theme]])
+  n_comp <- colnames(res$comp)
+  number <- paste("T", theme, sep = "")
+  comps <- n_comp[grep(number, n_comp)]
+
+  n_var <- colnames(res$Theme)
+  var <- n_var[grep(number, n_var)]
+
+  inertia <- cor(res$Theme[, var], res$comp[, comps])
   inertia <- inertia^2
   inertia <- colMeans(inertia)
   # browser()
@@ -67,11 +74,11 @@ plot_comp <- function(x, thresold, plan=c(1,2), theme=1, lin.pred=FALSE){
   p <- p + annotation_custom(circleGrob(r=0.5,gp=gpar(lty=2, fill=NA)),
                              -thresold,thresold,-thresold,thresold)
 
-  co1 <- as.data.frame(cor(res$Theme[[theme]],
-                           res$Theme[[theme]]%*%res$U[[theme]][,c(plan[1], plan[2])]))
+  co1 <- as.data.frame(cor(res$Theme[, var],
+                           res$comp[,comps][,c(plan[1], plan[2])]))
   names(co1) <- c("x", "y")
   co1$norm <- sqrt(co1$x^2+co1$y^2)
-  co1$label <- names(as.data.frame(res$Theme[[theme]]))
+  co1$label <- names(as.data.frame(res$Theme[, var]))
   co1$arrows.color <- 'black'
   co1$labels.color <- 'black'
   co1$labels.size <- 6
@@ -96,8 +103,8 @@ plot_comp <- function(x, thresold, plan=c(1,2), theme=1, lin.pred=FALSE){
   )
   # browser()
   if(lin.pred==TRUE){
-    co2 <- as.data.frame(cor(res$eta,
-                             res$Theme[[theme]]%*%res$U[[theme]][,c(plan[1], plan[2])]))
+    co2 <- as.data.frame(cor(cbind(1, res$A, res$comp) %*% res$coef,
+                             res$comp[,comps][,c(plan[1], plan[2])]   ))
     # browser()
     names(co2) <- c("x", "y")
     co2$norm <- sqrt(co2$x^2+co2$y^2)
