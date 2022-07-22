@@ -1,11 +1,11 @@
 #' @title Clustering steps to detect responses with mutual dependencies
-#' @param mat a matrice of loadings of size N times K
+#' @param mat a matrice of loadings of size J (number of factors) times K (number of responses)
 #' @return \item{cluster}{a vector of integers indicating the cluster to which each response is allocated}
+#' @return \item{mds}{a matrix whose rows give the coordinates of the points chosen to represent the dissimilarities}
 #' @export
 #' @examples
 #' # load sample data
 #' data <- genus
-#' data <- as.data.frame(apply(data, 2, as.numeric ))
 
 #'# get variable names from dataset
 #'n <- names(data)
@@ -34,7 +34,7 @@
 
 ClusterDetection <- function(mat){
 
-  # compute the conditional variance covaraince matrix
+  # compute the conditional variance covariance matrix
   covariance <- crossprod(mat)
 
   # compute the conditional correlation matrix
@@ -48,7 +48,7 @@ ClusterDetection <- function(mat){
   # compute the dissimilarity matrix
   dist <- 2*abs(1-correlation*correlation)
 
-  # perform multidimential scaling
+  # perform multidimensional scaling
   flag <- TRUE
   nb_axes <- 1
   while(flag){
@@ -57,12 +57,23 @@ ClusterDetection <- function(mat){
     if(res.CMD$GOF[2] > 0.99) flag <- FALSE
   }
 
-  # perform K-means with CAH as initialisation
+  # perform K-means with CAH as initialization
   k.opt <- which.max(fviz_nbclust(res.CMD$points, FUNcluster = hkmeans,
                                   method = "silhouette",
                                   k.max=ncol(mat)-1)$data$y)
   res.km <- hkmeans(x=res.CMD$points, k = k.opt)
 
-  return(list(cluster = res.km$cluster))
+  #out
+  mds <- res.CMD$points
+  rownames(mds) <- colnames(mat)
+  colnames(mds) <- paste("Dim", 1:ncol(mds), sep="")
+
+  cluster <- as.data.frame(res.km$cluster)
+  cluster <- t(cluster)
+  colnames(cluster) <- colnames(mat)
+  rownames(cluster) <- "cluster"
+
+  return(list(cluster = cluster,
+              mds = mds))
 }
 

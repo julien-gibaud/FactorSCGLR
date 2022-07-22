@@ -6,7 +6,6 @@
 #' @examples
 #' # load sample data
 #' data <- genus
-#' data <- as.data.frame(apply(data, 2, as.numeric ))
 
 #'# get variable names from dataset
 #'n <- names(data)

@@ -7,10 +7,12 @@
 ClusterDetection(mat)
 }
 \arguments{
-\item{mat}{a matrice of loadings of size N times K}
+\item{mat}{a matrice of loadings of size J (number of factors) times K (number of responses)}
 }
 \value{
 \item{cluster}{a vector of integers indicating the cluster to which each response is allocated}
+
+\item{mds}{a matrix whose rows give the coordinates of the points chosen to represent the dissimilarities}
 }
 \description{
 Clustering steps to detect responses with mutual dependencies
@@ -18,7 +20,6 @@ Clustering steps to detect responses with mutual dependencies
 \examples{
 # load sample data
 data <- genus
-data <- as.data.frame(apply(data, 2, as.numeric ))
 # get variable names from dataset
 n <- names(data)
 ny <- n[grep("^gen",n)]

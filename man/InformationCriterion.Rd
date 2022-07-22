@@ -20,7 +20,6 @@ Information criterion for scglr with factors
 \examples{
 # load sample data
 data <- genus
-data <- as.data.frame(apply(data, 2, as.numeric ))
 # get variable names from dataset
 n <- names(data)
 ny <- n[grep("^gen",n)]

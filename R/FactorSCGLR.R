@@ -14,7 +14,6 @@
 #' @examples
 #' # load sample data
 #' data <- genus
-#' data <- as.data.frame(apply(data, 2, as.numeric ))
 
 #'# get variable names from dataset
 #'n <- names(data)
@@ -44,7 +43,7 @@
 #' @return \item{G}{the set of factors}
 #' @return \item{sigma2}{the residual variances for gaussian responses}
 #' @return \item{offset}{the offset used for the poisson dependent variables}
-#' @return \item{WorkingVariables}{the set of working variables}
+#' @return \item{Z}{the set of working variables}
 #' @return \item{Y}{the response matrix}
 #' @return \item{Theme}{the list of standardized explanatory themes}
 #' @return \item{A}{the supplementary explanatory variables}
@@ -203,10 +202,16 @@ FactorSCGLR <-  function(formula,
   #***************#
   Y <- as.matrix(data[,Y_vars])
   X <- as.matrix(data[,X_vars])
+  if(!is.null(terms_A)) A <- model.matrix(formula,data=data,rhs=length(formula)[[2]])[,-1]
+  else A <- NULL
+  if(is.vector(A)) {
+    A <- matrix(A,ncol=1)
+    colnames(A) <- A_vars
+  }
+
   n <- nrow(Y)
   X <- apply(X, 2, FUN =  function(x) return(wtScale(x=x, w=1/n)) )
   Theme <- lapply(Theme_vars, function(c) as.matrix(X[,c]))
-  if(!is.null(terms_A)) A <- as.matrix(data[,A_vars]) else A <- NULL
   K <- length(Y_vars)
   p <- ncol(X)
   if(!is.null(terms_A)) r1 <- ncol(A) else r1 <- 0
@@ -501,7 +506,7 @@ FactorSCGLR <-  function(formula,
   }
 
   coef <- sol
-  names.coef <- c("intercept", A_vars, names_comp)
+  names.coef <- c("intercept", colnames(A), names_comp)
   row.names(coef) <- names.coef
   colnames(coef) <- colnames(Y)
   colnames(eta.new) <- colnames(Y)

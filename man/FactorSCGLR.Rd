@@ -54,7 +54,7 @@ the tolerance convergence criterion for the Expectation Maximization algorithm. 
 
 \item{offset}{the offset used for the poisson dependent variables}
 
-\item{WorkingVariables}{the set of working variables}
+\item{Z}{the set of working variables}
 
 \item{Y}{the response matrix}
 
@@ -72,7 +72,6 @@ Function that fits the scglr model with factors
 \examples{
 # load sample data
 data <- genus
-data <- as.data.frame(apply(data, 2, as.numeric ))
 # get variable names from dataset
 n <- names(data)
 ny <- n[grep("^gen",n)]
