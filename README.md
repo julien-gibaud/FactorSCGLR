@@ -14,7 +14,6 @@ library(FactorSCGLR)
 
 # load sample data
 data <- genus
-data <- as.data.frame(apply(data, 2, as.numeric ))
 
 # get variable names from dataset
 n <- names(data)
@@ -50,6 +49,13 @@ plot_comp(x=res, thresold=0.5, theme=2, plan=c(1,2))
 IC <- InformationCriterion(res)
 IC$aic
 IC$bic
+
+# Detect the clusters 
+CD <- ClusterDetection(mat=res$B)
+#the identified clusters
+CD$cluster
+#the output of the multidimensional scaling
+CD$mds
 ```
 
 ## Simulations from the paper
@@ -146,8 +152,8 @@ nx2 <- paste("X", 201:500, sep = "") #theme 2
 colnames(data) <- c(ny,nx1,nx2)
 form <- multivariateFormula(ny,nx1,nx2, additional = F)
 # define family
-fam <- c(rep('gaussian', 20), 
-         rep('poisson', 20), 
+fam <- c(rep('gaussian', 20),
+         rep('poisson', 20),
          rep('bernoulli', 10))
 # define method
 met <- methodSR(l=4,s=0.3, maxiter = 50)
@@ -155,11 +161,11 @@ met <- methodSR(l=4,s=0.3, maxiter = 50)
 crit <- list(tol = 1e-6, maxit = 100)
 # run
 H <- c(2,2)
-res <- FactorSCGLR(formula=form,
-                    data=data, 
+res <- FactorSCGLR( formula=form,
+                    data=data,
                     J=J,
                     H=H,
-                    method=met, 
+                    method=met,
                     family = fam,
                     crit = crit)
 
@@ -168,7 +174,7 @@ res <- FactorSCGLR(formula=form,
 #**************#
 # the correlation plots
 plot1 <- plot_comp(x=res, thresold = 0.5, theme=1, plan = c(1,2))
-plot2 <- plot_comp(x=res, thresold = 0.5, theme=2, plan = c(1,2))
+plot2 <- plot_comp(x=res, thresold = 0.5, them=2, plan = c(1,2))
 # the supervised components
 res$comp
 # the factors loading
@@ -186,10 +192,13 @@ IC$aic
 IC$bic
 
 #*********************#
-# detect the clusters #
+# Detect the clusters #
 #*********************#
-cluster <- ClusterDetection(mat=res$B)
-cluster
+CD <- ClusterDetection(mat=res$B)
+#the identified clusters
+CD$cluster
+#the output of the multidimensional scaling
+CD$mds
 ```
 
 ### Packages comparison with binary responses
@@ -198,6 +207,7 @@ cluster
 library(FactorSCGLR)
 library(gllvm)
 library(mvtnorm)
+
 
 #**********#
 # settings #
@@ -216,13 +226,14 @@ G.sim <- rmvnorm(n=N, mean = rep(0, J), sigma = diag(J))
 #*********************************#
 # create the additional covariate #
 #*********************************#
-A <- rbinom(n=N, size=2, prob=0.5)+1
+A <- as.factor(rbinom(n=N, size=2, prob=0.5))
+A_ind <- model.matrix(~A)
 
 #**********************************#
 # create the regression parameters #
 #**********************************#
 gamma.sim <- runif(n = K, min = -4, max = 4)
-delta.sim <- runif(n = K, min = -1, max = 1)
+delta.sim <- matrix(data = runif(n = 3*K, min = -1, max = 1), nrow = 3, ncol = K)
 
 #*****************************#
 # create the factors loadings #
@@ -239,7 +250,7 @@ B.sim <- t(diag(rot)%*%rbind(rmvnorm(n=0.4*K, mean = mean1, sigma = variance_B*d
 #*********************************#
 Y <- cbind()
 for(i in 1:K){ # bernoulli
-  eta <- psi.sim*gamma.sim[i]+A*delta.sim[i]+G.sim%*%B.sim[,i]
+  eta <- psi.sim*gamma.sim[i]+A_ind%*%delta.sim[,i]+G.sim%*%B.sim[,i]
   mu <- exp(eta)/(1+exp(eta))
   Y <- cbind(Y, rbinom(n=N, size=1, prob=mu))
 }
@@ -254,11 +265,12 @@ for(i in 1:10)  X <- cbind(X, psi.sim + rnorm(n = N, sd = sqrt(0.1)))
 # run function #
 #**************#
 # build data
-data <- data.frame(cbind(Y,X,A))
+data <- data.frame(cbind(Y,X))
+data$A <- A
 # build multivariate formula
 ny <- paste("Y", 1:K, sep = "")
 nx <- paste("X", 1:10, sep = "")
-na <- "A1"
+na <- "A"
 colnames(data) <- c(ny,nx,na)
 form <- multivariateFormula(ny,nx,na, additional = TRUE)
 # define family
@@ -270,7 +282,7 @@ crit <- list(tol = 1e-6, maxit = 100)
 # run FactorsSCGLR
 H <- 1
 start.time.scglr <- Sys.time()
-res <- FactorSCGLR(formula=form,
+res <- FactorSCGLR( formula=form,
                     data=data,
                     J=J,
                     H=H,
@@ -289,7 +301,8 @@ cluster.scglr <- ClusterDetection(mat=res$B)
 # run gllvm #
 #***********#
 # build data
-explanatory <- cbind(X,A)
+explanatory <- cbind(X,A_ind[,-1])
+na <- c("A1", "A2")
 colnames(explanatory) <- c(nx,na)
 # run gllvm-EVA
 start.time.gllvm.eva <- Sys.time()
@@ -319,4 +332,5 @@ time.taken.gllvm.la <- as.numeric(difftime(end.time.gllvm.la,
 cluster.gllvm.eva <- ClusterDetection(mat=t(res.gllvm.eva$params$theta))
 cluster.gllvm.va <- ClusterDetection(mat=t(res.gllvm.va$params$theta))
 cluster.gllvm.la <- ClusterDetection(mat=t(res.gllvm.la$params$theta))
+
 ```
