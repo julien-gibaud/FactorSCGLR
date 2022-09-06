@@ -174,7 +174,7 @@ res <- FactorSCGLR( formula=form,
 #**************#
 # the correlation plots
 plot1 <- plot_comp(x=res, thresold = 0.5, theme=1, plan = c(1,2))
-plot2 <- plot_comp(x=res, thresold = 0.5, them=2, plan = c(1,2))
+plot2 <- plot_comp(x=res, thresold = 0.5, theme=2, plan = c(1,2))
 # the supervised components
 res$comp
 # the factors loading
@@ -332,5 +332,156 @@ time.taken.gllvm.la <- as.numeric(difftime(end.time.gllvm.la,
 cluster.gllvm.eva <- ClusterDetection(mat=t(res.gllvm.eva$params$theta))
 cluster.gllvm.va <- ClusterDetection(mat=t(res.gllvm.va$params$theta))
 cluster.gllvm.la <- ClusterDetection(mat=t(res.gllvm.la$params$theta))
+```
+
+### Application to a real dataset
+```r
+library(FactorSCGLR)
+library(SCGLR)
+
+# load data available at https://doi.org/10.15454/AJZUQN
+load('Copie de data_Duflot et al_AGEE.RData')
+data <- x
+data$year <- as.factor(data$year)
+
+# get variable names from dataset
+n <- names(data)
+
+# agrobiodiversity (responses)
+ny <- c("carab.richn.tot", "carab.abund.tot", "carab.shannon.tot", "c.ax1.coa",
+        "c.ax2.coa", "c.ax3.coa", "plants.richn", "plants.abund",
+        "plants.shannon", "p.ax1.coa", "p.ax2.coa", "p.ax3.coa")
+
+# pest control (first theme)
+nx1 <- c("aphid.low.tot", "aphid.high.tot", "seeds.tot", "eggs.tot")
+
+# farming intensity (second theme)
+nx2 <- c("TFI.f", "TFI.h", "TFI.total", "qtyN.kg", "cum.till.depth", "nb.op")
+
+# land. hetero. SNC (third theme)
+nx3 <- c("X.SNC", "X.Pgrass", "X.Wooded", "MPSSNH", "edgesSNHcrop", "edgesSNH")
+
+# land. hetero. crop mosaic (fourth theme)
+nx4 <- c("X.W.cereral", "X.otherWcrop", "X.S.crop", "SHDIcrop", "edgedensitycrop")
+
+# agricultural production and Pollination potential (fifth theme)
+nx5 <- c("yield", "AL.fertil.rate", "polli.fertil.gain")
+
+# all explanatory variables
+nx <- c(nx1, nx2, nx3, nx4, nx5)
+
+# additional covariate
+na <- c("year")
+
+# define family
+fam <- c('poisson', 'poisson', 'gaussian', 'gaussian', 'gaussian', 'gaussian',
+         'poisson', 'gaussian', 'gaussian', 'gaussian', 'gaussian', 'gaussian')
+
+#*********************************************#
+# calibration of the hyper-parameters s and l # 
+#*********************************************#
+
+# build multivariate formula for SCGLR
+form <- multivariateFormula(Y = ny, X = nx, A = na)
+
+# we print the combination minimizing the cross-validation
+S <- c(0.1, 0.3, 0.5)
+L <- c(1, 2, 3, 4, 7, 10)
+folds <- c(rep(1, 10), rep(2, 10), rep(3, 10), rep(4, 10), rep(5, 14))
+min_cv <- Inf
+for(s in S){
+  for(l in L){
+    genus.cv <- scglrCrossVal(formula=form, data=data, family=fam, K=3,
+                              method=methodSR(l=l,s=s),
+                              folds = folds)
+    mean.crit <- colMeans(log(genus.cv))
+    cv <- mean(mean.crit)
+    if(cv < min_cv){
+      min_cv <- cv
+      print(paste("s=", s, "l=", l, "CV=", cv))
+    }
+  }
+}
+# we keep s = 0.3 and l = 4
+ 
+#***********************************************************#
+# calibration of the hyper-parameters H1, H2, H3, H4 and H5 # 
+#***********************************************************#
+
+# build multivariate formula for F-SCGLR
+form <- multivariateFormula(Y = ny, X = list(nx1, nx2, nx3, nx4, nx5), A = na)
+
+# we print the combination minimizing the BIC
+min_bic <- Inf
+H <- 3
+for(h1 in 0:H){
+  for(h2 in 0:H){
+    for(h3 in 0:H){
+      for(h4 in 0:H){
+        for(h5 in 0:H){
+            res <-  FactorSCGLR(formula=form, data=data, J=0,
+                                H=c(h1,h2,h3,h4,h5),
+                                method=methodSR(l=4,s=0.3),
+                                family = fam)
+            crit <- InformationCriterion(x=res)
+            if(crit$bic < min_bic){
+              min_bic <- crit$bic
+              print(paste("H1=", h1, "H2=", h2, "H3=", h3, "H4=", h4, "H5=", h5,
+                          "bic=", round(crit$bic, digits = 0)))
+          }
+        }
+      }
+    }
+  }
+}
+# we keep (H1, H2, H3, H4, H5) = (0, 3, 0, 0, 2)
+
+#**************************************#
+# calibration of the hyper-parameter J # 
+#**************************************#
+
+# we print the value of J minimizing the BIC
+min_bic <- Inf
+for(j in 0:5){
+  res <-  FactorSCGLR(formula=form, data=data, J=j,
+                      H=c(0,3,0,0,2),
+                      method=methodSR(l=4,s=0.3),
+                      family = fam)
+  crit <- InformationCriterion(x=res)
+  if(crit$bic < min_bic){
+    min_bic <- crit$bic
+    print(paste("J=", j, "bic=", round(crit$bic, digits = 0)))
+  }
+}
+# we keep J = 3
+
+#*********************#
+# run the final model #
+#*********************#
+
+# run
+res <-  FactorSCGLR(formula=form, data=data,
+                    J=3, H=c(0,3,0,0,2),
+                    method=methodSR(l=4,s=0.3),
+                    family = fam)
+
+# the correlation plots
+plot1 <- plot_comp(x=res, thresold = 0.75, theme=2, plan = c(1,2))
+plot2 <- plot_comp(x=res, thresold = 0.75, theme=5, plan = c(1,2))
+# the supervised components
+res$comp
+# the factor loadings
+res$B
+# the factors
+res$G
+# the residual variances of the Gaussian responses
+res$sigma2
+
+# Detect the clusters 
+CD <- ClusterDetection(mat=res$B)
+#the identified clusters
+CD$cluster
+#the output of the multidimensional scaling
+CD$mds
 
 ```
