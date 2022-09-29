@@ -354,21 +354,14 @@ ny <- c("carab.richn.tot", "carab.abund.tot", "carab.shannon.tot", "c.ax1.coa",
 
 # pest control (first theme)
 nx1 <- c("aphid.low.tot", "aphid.high.tot", "seeds.tot", "eggs.tot")
-
 # farming intensity (second theme)
 nx2 <- c("TFI.f", "TFI.h", "TFI.total", "qtyN.kg", "cum.till.depth", "nb.op")
-
 # land. hetero. SNC (third theme)
 nx3 <- c("X.SNC", "X.Pgrass", "X.Wooded", "MPSSNH", "edgesSNHcrop", "edgesSNH")
-
 # land. hetero. crop mosaic (fourth theme)
 nx4 <- c("X.W.cereral", "X.otherWcrop", "X.S.crop", "SHDIcrop", "edgedensitycrop")
-
-# agricultural production and Pollination potential (fifth theme)
-nx5 <- c("yield", "AL.fertil.rate", "polli.fertil.gain")
-
 # all explanatory variables
-nx <- c(nx1, nx2, nx3, nx4, nx5)
+nx <- c(nx1, nx2, nx3, nx4)
 
 # additional covariate
 na <- c("year")
@@ -402,14 +395,14 @@ for(s in S){
     }
   }
 }
-# we keep s = 0.3 and l = 4
+# we keep s = 0.5 and l = 1
  
-#***********************************************************#
-# calibration of the hyper-parameters H1, H2, H3, H4 and H5 # 
-#***********************************************************#
+#********************************************************#
+# calibration of the hyper-parameters H1, H2, H3, and H4 # 
+#********************************************************#
 
 # build multivariate formula for F-SCGLR
-form <- multivariateFormula(Y = ny, X = list(nx1, nx2, nx3, nx4, nx5), A = na)
+form <- multivariateFormula(Y = ny, X = list(nx1, nx2, nx3, nx4), A = na)
 
 # we print the combination minimizing the BIC
 min_bic <- Inf
@@ -418,23 +411,21 @@ for(h1 in 0:H){
   for(h2 in 0:H){
     for(h3 in 0:H){
       for(h4 in 0:H){
-        for(h5 in 0:H){
-            res <-  FactorSCGLR(formula=form, data=data, J=0,
-                                H=c(h1,h2,h3,h4,h5),
-                                method=methodSR(l=4,s=0.3),
-                                family = fam)
-            crit <- InformationCriterion(x=res)
-            if(crit$bic < min_bic){
-              min_bic <- crit$bic
-              print(paste("H1=", h1, "H2=", h2, "H3=", h3, "H4=", h4, "H5=", h5,
-                          "bic=", round(crit$bic, digits = 0)))
-          }
+        res <-  FactorSCGLR(formula=form, data=data, J=0,
+                            H=c(h1,h2,h3,h4),
+                            method=methodSR(l=1,s=0.5),
+                            family = fam)
+        crit <- InformationCriterion(x=res)
+        if(crit$bic < min_bic){
+          min_bic <- crit$bic
+          print(paste("H1=", h1, "H2=", h2, "H3=", h3, "H4=", h4,
+                      "bic=", round(crit$bic, digits = 0)))
         }
       }
     }
   }
 }
-# we keep (H1, H2, H3, H4, H5) = (0, 3, 0, 0, 2)
+# we keep (H1, H2, H3, H4) = (0, 3, 0, 0)
 
 #**************************************#
 # calibration of the hyper-parameter J # 
@@ -444,8 +435,8 @@ for(h1 in 0:H){
 min_bic <- Inf
 for(j in 0:5){
   res <-  FactorSCGLR(formula=form, data=data, J=j,
-                      H=c(0,3,0,0,2),
-                      method=methodSR(l=4,s=0.3),
+                      H=c(0,3,0,0),
+                      method=methodSR(l=1,s=0.5),
                       family = fam)
   crit <- InformationCriterion(x=res)
   if(crit$bic < min_bic){
@@ -461,13 +452,14 @@ for(j in 0:5){
 
 # run
 res <-  FactorSCGLR(formula=form, data=data,
-                    J=3, H=c(0,3,0,0,2),
-                    method=methodSR(l=4,s=0.3),
+                    J=3, H=c(0,3,0,0),
+                    method=methodSR(l=1,s=0.5),
                     family = fam)
 
 # the correlation plots
 plot1 <- plot_comp(x=res, thresold = 0.75, theme=2, plan = c(1,2))
-plot2 <- plot_comp(x=res, thresold = 0.75, theme=5, plan = c(1,2))
+plot2 <- plot_comp(x=res, thresold = 0.75, theme=2, plan = c(1,3))
+plot3 <- plot_comp(x=res, thresold = 0.75, theme=2, plan = c(2,3))
 # the supervised components
 res$comp
 # the factor loadings
@@ -483,5 +475,4 @@ CD <- ClusterDetection(mat=res$B)
 CD$cluster
 #the output of the multidimensional scaling
 CD$mds
-
 ```
