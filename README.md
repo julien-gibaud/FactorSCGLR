@@ -377,6 +377,367 @@ proc.G.gllvm.la <- procrustes(G.sim, factors.gllvm.la)$ss
 comps.gllvm.la <- getLV(res.gllvm.la, type = 'marginal')
 cor1.gllvm.la <- max(cor(psi1.sim, comps.gllvm.la)^2)
 cor2.gllvm.la <- max(cor(psi2.sim, comps.gllvm.la)^2)
+```
+#### Poisson distribution
+```r
+library(FactorSCGLR)
+library(gllvm)
+library(mvtnorm)
+library(fossil)
+library(vegan)
+
+
+#**********#
+# settings #
+#**********#
+N <- 100     # observations
+K <- 10      # responses
+J <- 2       # factors
+variance_B  <- 0.1 # variance within the clusters
+
+#*****************************#
+# create the latent variables #
+#*****************************#
+psi1.sim <- rnorm(n = N)
+psi2.sim <- rnorm(n = N)
+G.sim <- rmvnorm(n=N, mean = rep(0, J), sigma = diag(J))
+
+#*********************************#
+# create the additional covariate #
+#*********************************#
+A <- as.factor(sample(x = 1:8, size = N, replace = TRUE))
+while (length(levels(A)) < 8) as.factor(sample(x = 1:8, size = N, replace = TRUE))
+A_ind <- model.matrix(~-1+A)
+
+#**********************************#
+# create the regression parameters #
+#**********************************#
+gamma1.sim <- runif(n = K, min = -4, max = 4)
+gamma2.sim <- runif(n = K, min = -2, max = 2)
+delta.sim <- matrix(data = runif(n = 8*K, min = -0.5, max = 0.5), nrow = 8, ncol = K)
+
+#*****************************#
+# create the factors loadings #
+#*****************************#
+mean1 <- c(0,2)
+mean2 <- c(1.5,0)
+rot <- rep(-1, K)
+rot[(1:K)%%2==0] <- 1
+B.sim <- t(diag(rot)%*%rbind(rmvnorm(n=0.4*K, mean = mean1, sigma = variance_B*diag(J)),
+                             rmvnorm(n=0.6*K, mean = mean2, sigma = variance_B*diag(J))))
+
+#*********************************#
+# simulate the response variables #
+#*********************************#
+Y <- cbind()
+for(i in 1:K){
+  eta <- 0.75*(psi1.sim*gamma1.sim[i]+psi2.sim*gamma2.sim[i]+A_ind%*%delta.sim[,i]+G.sim%*%B.sim[,i])
+  mu <- exp(eta)
+  Y <- cbind(Y, rpois(n = N, lambda = mu))
+}
+
+#************************************#
+# simulate the explanatory variables #
+#************************************#
+X <- cbind()
+for(i in 1:5)  X <- cbind(X, psi1.sim + rnorm(n = N, sd = sqrt(0.1)))
+for(i in 1:5)  X <- cbind(X, psi2.sim + rnorm(n = N, sd = sqrt(0.1)))
+for(i in 1:10) X <- cbind(X, rnorm(n = N))
+
+#**************#
+# run function #
+#**************#
+# build data
+data <- data.frame(cbind(Y,X))
+data$A <- A
+# build multivariate formula
+ny <- paste("Y", 1:K, sep = "")
+nx <- paste("X", 1:ncol(X), sep = "")
+na <- "A"
+colnames(data) <- c(ny,nx,na)
+form <- multivariateFormula(ny,nx,na, additional = TRUE)
+# define family
+fam <- rep('poisson', K)
+# define method
+met <- methodSR(l=4, s=0.5)
+# run FactorsSCGLR
+H <- 2
+start.time.scglr <- Sys.time()
+res.scglr <- FactorSCGLR( formula=form,
+                          data=data,
+                          J=J,
+                          H=H,
+                          method=met,
+                          family = fam)
+end.time.scglr <- Sys.time()
+time.scglr <- as.numeric(difftime(end.time.scglr,
+                                  start.time.scglr, 
+                                  units = "secs"))
+
+# Detect the clusters 
+cluster.scglr <- ClusterDetection(mat=res.scglr$B)
+# Compute RI
+RI.scglr <- rand.index(cluster.scglr$cluster, c(rep(1,0.4*K),rep(2,0.6*K)))
+# Compute ARI
+ARI.scglr <- adj.rand.index(cluster.scglr$cluster, c(rep(1,0.4*K),rep(2,0.6*K)))
+# Procrustes errors
+proc.B.scglr <- procrustes(t(B.sim), t(res.scglr$B))$ss
+proc.G.scglr <- procrustes(G.sim, res.scglr$G)$ss
+# Latent dimension recovery
+cor1.scglr <- max(cor(psi1.sim, res.scglr$comp)^2)
+cor2.scglr <- max(cor(psi2.sim, res.scglr$comp)^2)
+
+#***********#
+# run gllvm #
+#***********#
+# build data
+explanatory <- cbind(X,A_ind[,-1])
+colnames(explanatory) <- c(nx, paste("A", 2:8, sep = ""))
+# run gllvm-VA
+start.time.gllvm.va <- Sys.time()
+res.gllvm.va <- gllvm(Y,
+                      X = explanatory, 
+                      formula = ~ A2+A3+A4+A5+A6+A7+A8,
+                      family = poisson(),
+                      num.lv = 2,
+                      num.RR = 2,
+                      lv.formula = ~ X1+X2+X3+X4+X5+X6+X7+X8+X9+X10+X11+X12+X13+X14+X15+X16+X17+X18+X19+X20,
+                      method = "VA",
+                      sd.errors = FALSE)
+end.time.gllvm.va <- Sys.time()
+time.gllvm.va <- as.numeric(difftime(end.time.gllvm.va,
+                                     start.time.gllvm.va,
+                                     units = "secs"))
+
+# Detect the clusters 
+B.gllvm.va <- t(res.gllvm.va$params$theta[,3:4]%*%diag(res.gllvm.va$params$sigma.lv,2))
+cluster.gllvm.va <- ClusterDetection(B.gllvm.va)
+# Compute RI
+RI.gllvm.va <- rand.index(cluster.gllvm.va$cluster, c(rep(1,0.4*K),rep(2,0.6*K)))
+# Compute ARI
+ARI.gllvm.va <- adj.rand.index(cluster.gllvm.va$cluster, c(rep(1,0.4*K),rep(2,0.6*K)))
+# Procrustes errors
+proc.B.gllvm.va <- procrustes(t(B.sim), t(B.gllvm.va))$ss
+factors.gllvm.va <- getLV(res.gllvm.va, type = 'residual')
+proc.G.gllvm.va <- procrustes(G.sim, factors.gllvm.va)$ss
+# Latent dimension recovery
+comps.gllvm.va <- getLV(res.gllvm.va, type = 'marginal')
+cor1.gllvm.va <- max(cor(psi1.sim, comps.gllvm.va)^2)
+cor2.gllvm.va <- max(cor(psi2.sim, comps.gllvm.va)^2)
+
+
+# run gllvm-LA
+start.time.gllvm.la <- Sys.time()
+res.gllvm.la <- gllvm(Y,
+                      X = explanatory,
+                      formula = ~ A2+A3+A4+A5+A6+A7+A8,
+                      family = poisson(),
+                      num.lv = 2,
+                      num.RR = 2,
+                      lv.formula = ~ X1+X2+X3+X4+X5+X6+X7+X8+X9+X10+X11+X12+X13+X14+X15+X16+X17+X18+X19+X20,
+                      method = "LA",
+                      sd.errors = FALSE)
+end.time.gllvm.la <- Sys.time()
+time.gllvm.la <- as.numeric(difftime(end.time.gllvm.la,
+                                     start.time.gllvm.la,
+                                     units = "secs"))
+
+# Detect the clusters 
+B.gllvm.la <- t(res.gllvm.la$params$theta[,3:4]%*%diag(res.gllvm.la$params$sigma.lv,2))
+cluster.gllvm.la <- ClusterDetection(B.gllvm.la)
+# Compute RI
+RI.gllvm.la <- rand.index(cluster.gllvm.la$cluster, c(rep(1,0.4*K),rep(2,0.6*K)))
+# Compute ARI
+ARI.gllvm.la <- adj.rand.index(cluster.gllvm.la$cluster, c(rep(1,0.4*K),rep(2,0.6*K)))
+# Procrustes errors
+proc.B.gllvm.la <- procrustes(t(B.sim), t(B.gllvm.la))$ss
+factors.gllvm.la <- getLV(res.gllvm.la, type = 'residual')
+proc.G.gllvm.la <- procrustes(G.sim, factors.gllvm.la)$ss
+# Latent dimension recovery
+comps.gllvm.la <- getLV(res.gllvm.la, type = 'marginal')
+cor1.gllvm.la <- max(cor(psi1.sim, comps.gllvm.la)^2)
+cor2.gllvm.la <- max(cor(psi2.sim, comps.gllvm.la)^2)
+```
+#### Bernoulli distribution
+```r
+library(FactorSCGLR)
+library(gllvm)
+library(mvtnorm)
+library(fossil)
+library(vegan)
+
+
+#**********#
+# settings #
+#**********#
+N <- 100     # observations
+K <- 10      # responses
+J <- 2       # factors
+variance_B  <- 0.1 # variance within the clusters
+set.seed(42)
+
+#*****************************#
+# create the latent variables #
+#*****************************#
+psi1.sim <- rnorm(n = N)
+psi2.sim <- rnorm(n = N)
+G.sim <- rmvnorm(n=N, mean = rep(0, J), sigma = diag(J))
+
+#*********************************#
+# create the additional covariate #
+#*********************************#
+A <- as.factor(sample(x = 1:8, size = N, replace = TRUE))
+while (length(levels(A)) < 8) as.factor(sample(x = 1:8, size = N, replace = TRUE))
+A_ind <- model.matrix(~-1+A)
+
+#**********************************#
+# create the regression parameters #
+#**********************************#
+gamma1.sim <- runif(n = K, min = -4, max = 4)
+gamma2.sim <- runif(n = K, min = -2, max = 2)
+delta.sim <- matrix(data = runif(n = 8*K, min = -0.5, max = 0.5), nrow = 8, ncol = K)
+
+#*****************************#
+# create the factors loadings #
+#*****************************#
+mean1 <- c(0,2)
+mean2 <- c(1.5,0)
+rot <- rep(-1, K)
+rot[(1:K)%%2==0] <- 1
+B.sim <- t(diag(rot)%*%rbind(rmvnorm(n=0.4*K, mean = mean1, sigma = variance_B*diag(J)),
+                             rmvnorm(n=0.6*K, mean = mean2, sigma = variance_B*diag(J))))
+
+#*********************************#
+# simulate the response variables #
+#*********************************#
+Y <- cbind()
+for(i in 1:K){
+  eta <- psi1.sim*gamma1.sim[i]+psi2.sim*gamma2.sim[i]+A_ind%*%delta.sim[,i]+G.sim%*%B.sim[,i]
+  mu <- exp(eta)/(1+exp(eta))
+  Y <- cbind(Y, rbinom(n=N, size=1, prob=mu))
+}
+
+#************************************#
+# simulate the explanatory variables #
+#************************************#
+X <- cbind()
+for(i in 1:5)  X <- cbind(X, psi1.sim + rnorm(n = N, sd = sqrt(0.1)))
+for(i in 1:5)  X <- cbind(X, psi2.sim + rnorm(n = N, sd = sqrt(0.1)))
+for(i in 1:10) X <- cbind(X, rnorm(n = N))
+
+#**************#
+# run function #
+#**************#
+# build data
+data <- data.frame(cbind(Y,X))
+data$A <- A
+# build multivariate formula
+ny <- paste("Y", 1:K, sep = "")
+nx <- paste("X", 1:ncol(X), sep = "")
+na <- "A"
+colnames(data) <- c(ny,nx,na)
+form <- multivariateFormula(ny,nx,na, additional = TRUE)
+# define family
+fam <- rep('bernoulli', K)
+# define method
+met <- methodSR(l=4, s=0.5)
+# run FactorsSCGLR
+H <- 2
+start.time.scglr <- Sys.time()
+res.scglr <- FactorSCGLR( formula=form,
+                          data=data,
+                          J=J,
+                          H=H,
+                          method=met,
+                          family = fam)
+end.time.scglr <- Sys.time()
+time.scglr <- as.numeric(difftime(end.time.scglr,
+                                  start.time.scglr, 
+                                  units = "secs"))
+
+# Detect the clusters 
+cluster.scglr <- ClusterDetection(mat=res.scglr$B)
+# Compute RI
+RI.scglr <- rand.index(cluster.scglr$cluster, c(rep(1,0.4*K),rep(2,0.6*K)))
+# Compute ARI
+ARI.scglr <- adj.rand.index(cluster.scglr$cluster, c(rep(1,0.4*K),rep(2,0.6*K)))
+# Procrustes errors
+proc.B.scglr <- procrustes(t(B.sim), t(res.scglr$B))$ss
+proc.G.scglr <- procrustes(G.sim, res.scglr$G)$ss
+# Latent dimension recovery
+cor1.scglr <- max(cor(psi1.sim, res.scglr$comp)^2)
+cor2.scglr <- max(cor(psi2.sim, res.scglr$comp)^2)
+
+#***********#
+# run gllvm #
+#***********#
+# build data
+explanatory <- cbind(scale(X),A_ind[,-1])
+colnames(explanatory) <- c(nx, paste("A", 2:8, sep = ""))
+# run gllvm-EVA
+start.time.gllvm.eva <- Sys.time()
+res.gllvm.eva <- gllvm(Y,
+                       X = explanatory,
+                       formula = ~ A2+A3+A4+A5+A6+A7+A8,
+                       family = binomial(link = "logit"),
+                       num.lv = 2,
+                       num.RR = 2,
+                       lv.formula = ~ X1+X2+X3+X4+X5+X6+X7+X8+X9+X10+X11+X12+X13+X14+X15+X16+X17+X18+X19+X20,
+                       method = "EVA",
+                       sd.errors = FALSE)
+end.time.gllvm.eva <- Sys.time()
+time.gllvm.eva <- as.numeric(difftime(end.time.gllvm.eva,
+                                      start.time.gllvm.eva,
+                                      units = "secs"))
+
+# Detect the clusters 
+B.gllvm.eva <- t(res.gllvm.eva$params$theta[,3:4]%*%diag(res.gllvm.eva$params$sigma.lv,2))
+cluster.gllvm.eva <- ClusterDetection(B.gllvm.eva)
+# Compute RI
+RI.gllvm.eva <- rand.index(cluster.gllvm.eva$cluster, c(rep(1,0.4*K),rep(2,0.6*K)))
+# Compute ARI
+ARI.gllvm.eva <- adj.rand.index(cluster.gllvm.eva$cluster, c(rep(1,0.4*K),rep(2,0.6*K)))
+# Procrustes errors
+proc.B.gllvm.eva <- procrustes(t(B.sim), t(B.gllvm.eva))$ss
+factors.gllvm.eva <- getLV(res.gllvm.eva, type = 'residual')
+proc.G.gllvm.eva <- procrustes(G.sim, factors.gllvm.eva)$ss
+# Latent dimension recovery
+comps.gllvm.eva <- getLV(res.gllvm.eva, type = 'marginal')
+cor1.gllvm.eva <- max(cor(psi1.sim, comps.gllvm.eva)^2)
+cor2.gllvm.eva <- max(cor(psi2.sim, comps.gllvm.eva)^2)
+
+
+# run gllvm-LA
+start.time.gllvm.la <- Sys.time()
+res.gllvm.la <- gllvm(Y,
+                      X = explanatory,
+                      formula = ~ A2+A3+A4+A5+A6+A7+A8,
+                      family = binomial(link = "logit"),
+                      num.lv = 2,
+                      num.RR = 2,
+                      lv.formula = ~ X1+X2+X3+X4+X5+X6+X7+X8+X9+X10+X11+X12+X13+X14+X15+X16+X17+X18+X19+X20,
+                      method = "LA",
+                      sd.errors = FALSE)
+end.time.gllvm.la <- Sys.time()
+time.gllvm.la <- as.numeric(difftime(end.time.gllvm.la,
+                                     start.time.gllvm.la,
+                                     units = "secs"))
+
+# Detect the clusters 
+B.gllvm.la <- t(res.gllvm.la$params$theta[,3:4]%*%diag(res.gllvm.la$params$sigma.lv,2))
+cluster.gllvm.la <- ClusterDetection(B.gllvm.la)
+# Compute RI
+RI.gllvm.la <- rand.index(cluster.gllvm.la$cluster, c(rep(1,0.4*K),rep(2,0.6*K)))
+# Compute ARI
+ARI.gllvm.la <- adj.rand.index(cluster.gllvm.la$cluster, c(rep(1,0.4*K),rep(2,0.6*K)))
+# Procrustes errors
+proc.B.gllvm.la <- procrustes(t(B.sim), t(B.gllvm.la))$ss
+factors.gllvm.la <- getLV(res.gllvm.la, type = 'residual')
+proc.G.gllvm.la <- procrustes(G.sim, factors.gllvm.la)$ss
+# Latent dimension recovery
+comps.gllvm.la <- getLV(res.gllvm.la, type = 'marginal')
+cor1.gllvm.la <- max(cor(psi1.sim, comps.gllvm.la)^2)
+cor2.gllvm.la <- max(cor(psi2.sim, comps.gllvm.la)^2)
 
 ```
 
