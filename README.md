@@ -214,6 +214,7 @@ N <- 100     # observations
 K <- 10      # responses
 J <- 2       # factors
 variance_B  <- 0.1 # variance within the clusters
+set.seed(42)
 
 #*****************************#
 # create the latent variables #
@@ -394,6 +395,7 @@ N <- 100     # observations
 K <- 10      # responses
 J <- 2       # factors
 variance_B  <- 0.1 # variance within the clusters
+set.seed(42)
 
 #*****************************#
 # create the latent variables #
