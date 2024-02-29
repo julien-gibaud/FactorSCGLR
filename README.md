@@ -89,11 +89,6 @@ gamma.sim <- runif(n = K, min = -4, max = 4)
 gamma.sim1 <- runif(n = K, min = -2, max = 2)
 gamma.sim2 <- runif(n = K, min = -0.5, max = 0.5)
 
-#********************************************#
-# create the variance for Gaussian responses #
-#********************************************#
-sigma2.sim <- runif(n = K, min = 0.1, max = 0.2)
-
 #*****************************#
 # create the factors loadings #
 #*****************************#
@@ -113,7 +108,7 @@ Y <- cbind()
 for(i in 1:20){ # gaussien
   eta <- psi1.sim*gamma.sim[i]+psi2.sim*gamma.sim1[i]+G.sim%*%B.sim[,i]
   mu <- eta
-  Y <- cbind(Y, rnorm(n=N, mean=mu, sd=sqrt(sigma2.sim[i])))
+  Y <- cbind(Y, rnorm(n=N, mean=mu, sd=1))
 }
 for(i in 21:40){ # poisson
   eta <- 0.5*(psi4.sim*gamma.sim[i]+psi3.sim*gamma.sim1[i])+G.sim%*%B.sim[,i]
@@ -174,7 +169,7 @@ res <- FactorSCGLR( formula=form,
 #**************#
 # the correlation plots
 plot1 <- plot_comp(x=res, thresold = 0.5, theme=1, plan = c(1,2))
-plot2 <- plot_comp(x=res, thresold = 0.5, theme=2, plan = c(1,2))
+plot2 <- plot_comp(x=res, thresold = 0.5, them=2, plan = c(1,2))
 # the supervised components
 res$comp
 # the factors loading
@@ -199,14 +194,17 @@ CD <- ClusterDetection(mat=res$B)
 CD$cluster
 #the output of the multidimensional scaling
 CD$mds
+
 ```
 
-### Packages comparison with binary responses
+### Packages comparison
+#### Gaussian distribution
 ```r
-# devtools::install_github("JenniNiku/gllvm")
 library(FactorSCGLR)
 library(gllvm)
 library(mvtnorm)
+library(fossil)
+library(vegan)
 
 
 #**********#
@@ -220,20 +218,23 @@ variance_B  <- 0.1 # variance within the clusters
 #*****************************#
 # create the latent variables #
 #*****************************#
-psi.sim <- rnorm(n = N)
+psi1.sim <- rnorm(n = N)
+psi2.sim <- rnorm(n = N)
 G.sim <- rmvnorm(n=N, mean = rep(0, J), sigma = diag(J))
 
 #*********************************#
 # create the additional covariate #
 #*********************************#
-A <- as.factor(rbinom(n=N, size=2, prob=0.5))
-A_ind <- model.matrix(~A)
+A <- as.factor(sample(x = 1:8, size = N, replace = TRUE))
+while (length(levels(A)) < 8) as.factor(sample(x = 1:8, size = N, replace = TRUE))
+A_ind <- model.matrix(~-1+A)
 
 #**********************************#
 # create the regression parameters #
 #**********************************#
-gamma.sim <- runif(n = K, min = -4, max = 4)
-delta.sim <- matrix(data = runif(n = 3*K, min = -1, max = 1), nrow = 3, ncol = K)
+gamma1.sim <- runif(n = K, min = -4, max = 4)
+gamma2.sim <- runif(n = K, min = -2, max = 2)
+delta.sim <- matrix(data = runif(n = 8*K, min = -0.5, max = 0.5), nrow = 8, ncol = K)
 
 #*****************************#
 # create the factors loadings #
@@ -249,17 +250,19 @@ B.sim <- t(diag(rot)%*%rbind(rmvnorm(n=0.4*K, mean = mean1, sigma = variance_B*d
 # simulate the response variables #
 #*********************************#
 Y <- cbind()
-for(i in 1:K){ # bernoulli
-  eta <- psi.sim*gamma.sim[i]+A_ind%*%delta.sim[,i]+G.sim%*%B.sim[,i]
-  mu <- exp(eta)/(1+exp(eta))
-  Y <- cbind(Y, rbinom(n=N, size=1, prob=mu))
+for(i in 1:K){ 
+  eta <- psi1.sim*gamma1.sim[i]+psi2.sim*gamma2.sim[i]+A_ind%*%delta.sim[,i]+G.sim%*%B.sim[,i]
+  mu <- eta
+  Y <- cbind(Y, rnorm(n=N, mean=mu, sd=1))
 }
 
 #************************************#
 # simulate the explanatory variables #
 #************************************#
 X <- cbind()
-for(i in 1:10)  X <- cbind(X, psi.sim + rnorm(n = N, sd = sqrt(0.1)))
+for(i in 1:5)  X <- cbind(X, psi1.sim + rnorm(n = N, sd = sqrt(0.1)))
+for(i in 1:5)  X <- cbind(X, psi2.sim + rnorm(n = N, sd = sqrt(0.1)))
+for(i in 1:10) X <- cbind(X, rnorm(n = N))
 
 #**************#
 # run function #
@@ -269,69 +272,112 @@ data <- data.frame(cbind(Y,X))
 data$A <- A
 # build multivariate formula
 ny <- paste("Y", 1:K, sep = "")
-nx <- paste("X", 1:10, sep = "")
+nx <- paste("X", 1:ncol(X), sep = "")
 na <- "A"
 colnames(data) <- c(ny,nx,na)
 form <- multivariateFormula(ny,nx,na, additional = TRUE)
 # define family
-fam <- rep('bernoulli', K)
+fam <- rep('gaussian', K)
 # define method
-met <- methodSR(l=1,s=0.5, maxiter = 50)
-# define crit
-crit <- list(tol = 1e-6, maxit = 100)
+met <- methodSR(l=4, s=0.5)
 # run FactorsSCGLR
-H <- 1
+H <- 2
 start.time.scglr <- Sys.time()
-res <- FactorSCGLR( formula=form,
-                    data=data,
-                    J=J,
-                    H=H,
-                    method=met,
-                    family = fam,
-                    crit = crit)
+res.scglr <- FactorSCGLR( formula=form,
+                          data=data,
+                          J=J,
+                          H=H,
+                          method=met,
+                          family = fam)
 end.time.scglr <- Sys.time()
-time.taken.scglr <- as.numeric(difftime(end.time.scglr, 
-                                        start.time.scglr, 
-                                        units = "secs"))
+time.scglr <- as.numeric(difftime(end.time.scglr,
+                                  start.time.scglr, 
+                                  units = "secs"))
 
 # Detect the clusters 
-cluster.scglr <- ClusterDetection(mat=res$B)
+cluster.scglr <- ClusterDetection(mat=res.scglr$B)
+# Compute RI
+RI.scglr <- rand.index(cluster.scglr$cluster, c(rep(1,0.4*K),rep(2,0.6*K)))
+# Compute ARI
+ARI.scglr <- adj.rand.index(cluster.scglr$cluster, c(rep(1,0.4*K),rep(2,0.6*K)))
+# Procrustes errors
+proc.B.scglr <- procrustes(t(B.sim), t(res.scglr$B))$ss
+proc.G.scglr <- procrustes(G.sim, res.scglr$G)$ss
+# Latent dimension recovery
+cor1.scglr <- max(cor(psi1.sim, res.scglr$comp)^2)
+cor2.scglr <- max(cor(psi2.sim, res.scglr$comp)^2)
 
 #***********#
 # run gllvm #
 #***********#
 # build data
 explanatory <- cbind(X,A_ind[,-1])
-na <- c("A1", "A2")
-colnames(explanatory) <- c(nx,na)
-# run gllvm-EVA
-start.time.gllvm.eva <- Sys.time()
-res.gllvm.eva <- gllvm(formula = Y~explanatory, family = binomial(), 
-                       num.lv = J,  method = "EVA")
-end.time.gllvm.eva <- Sys.time()
-time.taken.gllvm.eva <- as.numeric(difftime(end.time.gllvm.eva,
-                                            start.time.gllvm.eva,
-                                            units = "secs"))
+colnames(explanatory) <- c(nx, paste("A", 2:8, sep = ""))
 # run gllvm-VA
 start.time.gllvm.va <- Sys.time()
-res.gllvm.va <- gllvm(formula = Y~explanatory, family = binomial(), 
-                      num.lv = J,  method = "VA")
+res.gllvm.va <- gllvm(Y,
+                      X = explanatory, 
+                      formula = ~ A2+A3+A4+A5+A6+A7+A8,
+                      family = gaussian(),
+                      num.lv = 2,
+                      num.RR = 2,
+                      lv.formula = ~ X1+X2+X3+X4+X5+X6+X7+X8+X9+X10+X11+X12+X13+X14+X15+X16+X17+X18+X19+X20,
+                      method = "VA",
+                      sd.errors = FALSE)
 end.time.gllvm.va <- Sys.time()
-time.taken.gllvm.va <- as.numeric(difftime(end.time.gllvm.va, 
-                                           start.time.gllvm.va, 
-                                           units = "secs"))
+time.gllvm.va <- as.numeric(difftime(end.time.gllvm.va,
+                                     start.time.gllvm.va,
+                                     units = "secs"))
+
+# Detect the clusters 
+B.gllvm.va <- t(res.gllvm.va$params$theta[,3:4]%*%diag(res.gllvm.va$params$sigma.lv,2))
+cluster.gllvm.va <- ClusterDetection(B.gllvm.va)
+# Compute RI
+RI.gllvm.va <- rand.index(cluster.gllvm.va$cluster, c(rep(1,0.4*K),rep(2,0.6*K)))
+# Compute ARI
+ARI.gllvm.va <- adj.rand.index(cluster.gllvm.va$cluster, c(rep(1,0.4*K),rep(2,0.6*K)))
+# Procrustes errors
+proc.B.gllvm.va <- procrustes(t(B.sim), t(B.gllvm.va))$ss
+factors.gllvm.va <- getLV(res.gllvm.va, type = 'residual')
+proc.G.gllvm.va <- procrustes(G.sim, factors.gllvm.va)$ss
+# Latent dimension recovery
+comps.gllvm.va <- getLV(res.gllvm.va, type = 'marginal')
+cor1.gllvm.va <- max(cor(psi1.sim, comps.gllvm.va)^2)
+cor2.gllvm.va <- max(cor(psi2.sim, comps.gllvm.va)^2)
+
+
 # run gllvm-LA
 start.time.gllvm.la <- Sys.time()
-res.gllvm.la <- gllvm(formula = Y~explanatory, family = binomial(), 
-                      num.lv = J,  method = "LA")
+res.gllvm.la <- gllvm(Y,
+                      X = explanatory,
+                      formula = ~ A2+A3+A4+A5+A6+A7+A8,
+                      family = gaussian(),
+                      num.lv = 2,
+                      num.RR = 2,
+                      lv.formula = ~ X1+X2+X3+X4+X5+X6+X7+X8+X9+X10+X11+X12+X13+X14+X15+X16+X17+X18+X19+X20,
+                      method = "LA",
+                      sd.errors = FALSE)
 end.time.gllvm.la <- Sys.time()
-time.taken.gllvm.la <- as.numeric(difftime(end.time.gllvm.la,
-                                           start.time.gllvm.la,
-                                           units = "secs"))
+time.gllvm.la <- as.numeric(difftime(end.time.gllvm.la,
+                                     start.time.gllvm.la,
+                                     units = "secs"))
+
 # Detect the clusters 
-cluster.gllvm.eva <- ClusterDetection(mat=t(res.gllvm.eva$params$theta))
-cluster.gllvm.va <- ClusterDetection(mat=t(res.gllvm.va$params$theta))
-cluster.gllvm.la <- ClusterDetection(mat=t(res.gllvm.la$params$theta))
+B.gllvm.la <- t(res.gllvm.la$params$theta[,3:4]%*%diag(res.gllvm.la$params$sigma.lv,2))
+cluster.gllvm.la <- ClusterDetection(B.gllvm.la)
+# Compute RI
+RI.gllvm.la <- rand.index(cluster.gllvm.la$cluster, c(rep(1,0.4*K),rep(2,0.6*K)))
+# Compute ARI
+ARI.gllvm.la <- adj.rand.index(cluster.gllvm.la$cluster, c(rep(1,0.4*K),rep(2,0.6*K)))
+# Procrustes errors
+proc.B.gllvm.la <- procrustes(t(B.sim), t(B.gllvm.la))$ss
+factors.gllvm.la <- getLV(res.gllvm.la, type = 'residual')
+proc.G.gllvm.la <- procrustes(G.sim, factors.gllvm.la)$ss
+# Latent dimension recovery
+comps.gllvm.la <- getLV(res.gllvm.la, type = 'marginal')
+cor1.gllvm.la <- max(cor(psi1.sim, comps.gllvm.la)^2)
+cor2.gllvm.la <- max(cor(psi2.sim, comps.gllvm.la)^2)
+
 ```
 
 ### Application to a real dataset
