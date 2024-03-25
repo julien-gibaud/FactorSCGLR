@@ -307,6 +307,11 @@ proc.G.scglr <- procrustes(G.sim, res.scglr$G)$ss
 # Latent dimension recovery
 cor1.scglr <- max(cor(psi1.sim, res.scglr$comp)^2)
 cor2.scglr <- max(cor(psi2.sim, res.scglr$comp)^2)
+# RMSE
+delta.new <- delta.sim[2:8,]
+for(k in 1:K) delta.new[,k] <- delta.new[,k] - delta.sim[1,k]
+rmse.scglr <- mean(sqrt(colMeans((delta.new - res.scglr$coef[2:8,])^2)))
+
 
 #***********#
 # run gllvm #
@@ -345,6 +350,8 @@ proc.G.gllvm.va <- procrustes(G.sim, factors.gllvm.va)$ss
 comps.gllvm.va <- getLV(res.gllvm.va, type = 'marginal')
 cor1.gllvm.va <- max(cor(psi1.sim, comps.gllvm.va)^2)
 cor2.gllvm.va <- max(cor(psi2.sim, comps.gllvm.va)^2)
+# RMSE
+rmse.gllvm.va <- mean(sqrt(colMeans((delta.new - t(res.gllvm.va$params$Xcoef))^2)))
 
 
 # run gllvm-LA
@@ -378,6 +385,8 @@ proc.G.gllvm.la <- procrustes(G.sim, factors.gllvm.la)$ss
 comps.gllvm.la <- getLV(res.gllvm.la, type = 'marginal')
 cor1.gllvm.la <- max(cor(psi1.sim, comps.gllvm.la)^2)
 cor2.gllvm.la <- max(cor(psi2.sim, comps.gllvm.la)^2)
+# RMSE
+rmse.gllvm.la <- mean(sqrt(colMeans((delta.new - t(res.gllvm.la$params$Xcoef))^2)))
 ```
 #### Poisson distribution
 ```r
@@ -488,6 +497,11 @@ proc.G.scglr <- procrustes(G.sim, res.scglr$G)$ss
 # Latent dimension recovery
 cor1.scglr <- max(cor(psi1.sim, res.scglr$comp)^2)
 cor2.scglr <- max(cor(psi2.sim, res.scglr$comp)^2)
+# RMSE
+delta.new <- delta.sim[2:8,]
+for(k in 1:K) delta.new[,k] <- delta.new[,k] - delta.sim[1,k]
+rmse.scglr <- mean(sqrt(colMeans((delta.new - res.scglr$coef[2:8,])^2)))
+
 
 #***********#
 # run gllvm #
@@ -526,6 +540,8 @@ proc.G.gllvm.va <- procrustes(G.sim, factors.gllvm.va)$ss
 comps.gllvm.va <- getLV(res.gllvm.va, type = 'marginal')
 cor1.gllvm.va <- max(cor(psi1.sim, comps.gllvm.va)^2)
 cor2.gllvm.va <- max(cor(psi2.sim, comps.gllvm.va)^2)
+# RMSE
+rmse.gllvm.va <- mean(sqrt(colMeans((delta.new - t(res.gllvm.va$params$Xcoef))^2)))
 
 
 # run gllvm-LA
@@ -559,6 +575,8 @@ proc.G.gllvm.la <- procrustes(G.sim, factors.gllvm.la)$ss
 comps.gllvm.la <- getLV(res.gllvm.la, type = 'marginal')
 cor1.gllvm.la <- max(cor(psi1.sim, comps.gllvm.la)^2)
 cor2.gllvm.la <- max(cor(psi2.sim, comps.gllvm.la)^2)
+# RMSE
+rmse.gllvm.la <- mean(sqrt(colMeans((delta.new - t(res.gllvm.la$params$Xcoef))^2)))
 ```
 #### Bernoulli distribution
 ```r
@@ -669,6 +687,10 @@ proc.G.scglr <- procrustes(G.sim, res.scglr$G)$ss
 # Latent dimension recovery
 cor1.scglr <- max(cor(psi1.sim, res.scglr$comp)^2)
 cor2.scglr <- max(cor(psi2.sim, res.scglr$comp)^2)
+# RMSE
+delta.new <- delta.sim[2:8,]
+for(k in 1:K) delta.new[,k] <- delta.new[,k] - delta.sim[1,k]
+rmse.scglr <- mean(sqrt(colMeans((delta.new - res.scglr$coef[2:8,])^2)))
 
 #***********#
 # run gllvm #
@@ -707,6 +729,8 @@ proc.G.gllvm.eva <- procrustes(G.sim, factors.gllvm.eva)$ss
 comps.gllvm.eva <- getLV(res.gllvm.eva, type = 'marginal')
 cor1.gllvm.eva <- max(cor(psi1.sim, comps.gllvm.eva)^2)
 cor2.gllvm.eva <- max(cor(psi2.sim, comps.gllvm.eva)^2)
+# RMSE
+rmse.gllvm.eva <- mean(sqrt(colMeans((delta.new - t(res.gllvm.eva$params$Xcoef))^2)))
 
 
 # run gllvm-LA
@@ -740,7 +764,8 @@ proc.G.gllvm.la <- procrustes(G.sim, factors.gllvm.la)$ss
 comps.gllvm.la <- getLV(res.gllvm.la, type = 'marginal')
 cor1.gllvm.la <- max(cor(psi1.sim, comps.gllvm.la)^2)
 cor2.gllvm.la <- max(cor(psi2.sim, comps.gllvm.la)^2)
-
+# RMSE
+rmse.gllvm.la <- mean(sqrt(colMeans((delta.new - t(res.gllvm.la$params$Xcoef))^2)))
 ```
 
 ### Application to a real dataset
