@@ -920,4 +920,4 @@ If you use this package, please cite
 
 <div id="ref-gibaud25" class="csl-entry"> 
 
-Gibaud J, Bry X, Trottier C. Generalized linear model based on latent factors and supervised components. *Computational Statistics*. 2025;40:1475–1516. doi:10.1007/s00180-024-01544-8
+Gibaud J, Bry X and Trottier C. Generalized linear model based on latent factors and supervised components. *Computational Statistics*. 2025;40:1475–1516. doi:10.1007/s00180-024-01544-8
