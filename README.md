@@ -58,7 +58,7 @@ CD$cluster
 CD$mds
 ```
 
-## Simulations from the paper
+## Simulations from the paper ([Gibaud et al. 2025](#ref-gibaud25))
 ### Simulation with a mix of distribution
 ``` r
 library(FactorSCGLR)
@@ -910,3 +910,14 @@ CD$cluster
 #the output of the multidimensional scaling
 CD$mds
 ```
+
+
+## References
+
+<div id="refs" class="references csl-bib-body hanging-indent">
+
+If you use this package, please cite
+
+<div id="ref-gibaud25" class="csl-entry"> 
+
+Gibaud J, Bry X, Trottier C. Generalized linear model based on latent factors and supervised components. *Computational Statistics*. 2025;40:1475–1516. doi:10.1007/s00180-024-01544-8
